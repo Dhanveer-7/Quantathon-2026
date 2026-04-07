@@ -63,9 +63,6 @@ Always answer in clear, professional language. Use ₹ for Indian rupees.
 Use bullet points for complex answers. Keep answers concise but complete.
 """
 
-# ─── FALLBACK RESPONSES ───────────────────────────────────────────────────────
-# ─── FALLBACK RESPONSES (THE "BULLETPROOF DEMO" DICTIONARY) ───────────────────
-# ─── FALLBACK RESPONSES (THE "BULLETPROOF DEMO" DICTIONARY) ───────────────────
 # ─── FALLBACK RESPONSES (THE "BULLETPROOF DEMO" DICTIONARY) ───────────────────
 
 FALLBACK_RESPONSES = {
@@ -102,6 +99,18 @@ FALLBACK_RESPONSES = {
         "[AI ANALYSIS] 🧠 **Proposed GNN Model:**<br><br>"
         "We are proposing a Graph Neural Network (GNN). Accounts act as nodes, and transactions are edges.<br>"
         "By analyzing the graph structure (cycles, fan-ins) alongside node features (churn_rate, velocity), the GNN mathematically uncovers hidden crime syndicates."
+    ),
+    "suspicious": (
+        "[AI ANALYSIS] 🚨 **Suspicious Account Flagging Logic:**<br><br>"
+        "I flag accounts based on our Two-Pronged Detection Strategy. If an account is marked suspicious, it has triggered one or more of the following anomalies:<br><br>"
+        "**1. Behavioral Telemetry (The 'How'):**<br>"
+        "• **High Churn Rate:** The account is acting as a pass-through (funds enter and immediately leave).<br>"
+        "• **Velocity Escalation:** Rapid bursts of transactions (`velocity_l6h`) indicating smurfing.<br>"
+        "• **IP/Device Density:** Multiple distinct accounts logging in from this exact device/IP.<br><br>"
+        "**2. Graph Topology (The 'Who'):**<br>"
+        "• The account is mathematically part of a closed cycle (Circular Laundering).<br>"
+        "• The account has an unusually high In-Degree Centrality, receiving funds from multiple newly created accounts (Mule Fan-In).<br><br>"
+        "*To see the exact reason for a specific account, check the 'Reason Codes' on the live dashboard panel.*"
     ),
     "patterns": (
         "[AI ANALYSIS] [SEARCH] **6 Fraud Patterns Detected:**<br><br>"
@@ -173,20 +182,25 @@ FALLBACK_RESPONSES = {
     )
 }
 
-def _fallback_response(query: str) -> str:
-    """Smart keyword mapping to return the exact right answer."""
+def _fallback_response(query: str) -> Optional[str]:
+    """Smart keyword mapping. Returns the specific string, or None if no match is found."""
     q = query.lower()
+    
+    # NEW: Trigger for "Why is this suspicious/flagged?"
+    if "why" in q and ("suspicious" in q or "flagged" in q or "blocked" in q or "risk" in q): 
+        return FALLBACK_RESPONSES["suspicious"]
     
     # 1. Project Info & Methodology
     if "who" in q or "built" in q or "team" in q or "dynamos" in q: return FALLBACK_RESPONSES["team"]
     if "dataset" in q or "data" in q: return FALLBACK_RESPONSES["dataset"]
     if "problem" in q or "statement" in q: return FALLBACK_RESPONSES["problem"]
     if "gnn" in q or "graph" in q: return FALLBACK_RESPONSES["gnn"]
-    if "explain about the model" in q or "architecture" in q or "methodology" in q or "tech stack" in q or "how it works" in q: return FALLBACK_RESPONSES["architecture"]
+    if "architecture" in q or "methodology" in q or "tech stack" in q or "how it works" in q or "model" in q or "nodel" in q: 
+        return FALLBACK_RESPONSES["architecture"]
         
     # 2. Fraud Patterns & Stories
     if "pattern" in q or "stories" in q or "all 6" in q: return FALLBACK_RESPONSES["patterns"]
-    if "risk" in q or "highest" in q: return FALLBACK_RESPONSES["risk"]
+    if "highest risk" in q or "highest" in q: return FALLBACK_RESPONSES["risk"]
     if "mule chain" in q or "story 1" in q: return FALLBACK_RESPONSES["mule chain"]
     if "shared device" in q or "story 2" in q: return FALLBACK_RESPONSES["shared device"]
     if "velocity" in q or "story 3" in q: return FALLBACK_RESPONSES["velocity"]
@@ -198,7 +212,8 @@ def _fallback_response(query: str) -> str:
     if "churn" in q: return FALLBACK_RESPONSES["churn"]
     if "density" in q or "ip " in q: return FALLBACK_RESPONSES["density"]
     
-    return FALLBACK_RESPONSES["default"]
+    # IMPORTANT: Return None if it doesn't match our demo scripts
+    return None
 
 
 # ─── MAIN BOT CLASS ───────────────────────────────────────────────────────────
@@ -236,10 +251,18 @@ class IntelliTraceBot:
         if len(self.conversation_history) > self.max_history * 2:
             self.conversation_history = self.conversation_history[-self.max_history * 2:]
 
-        if self.llm_available:
+        # 1. THE INTERCEPTOR: Check if the user asked a presentation question FIRST
+        presentation_script = _fallback_response(user_message)
+
+        if presentation_script:
+            # If it matches our hardcoded script, use it instantly!
+            response = presentation_script
+        elif self.llm_available:
+            # 2. If it's a random question and API is active, use OpenRouter
             response = self._llm_chat(user_message)
         else:
-            response = _fallback_response(user_message)
+            # 3. If API is offline and it's a random question, show the default menu
+            response = FALLBACK_RESPONSES["default"]
 
         self.conversation_history.append({"role": "assistant", "content": response})
         
@@ -262,7 +285,7 @@ class IntelliTraceBot:
             return resp.choices[0].message.content if resp.choices else "No response."
         except Exception as e:
             print(f"[API ERROR] {e}")
-            return _fallback_response(user_message)
+            return FALLBACK_RESPONSES["default"]
 
 if __name__ == "__main__":
     # Quick local terminal test

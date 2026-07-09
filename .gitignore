@@ -1,0 +1,25 @@
+# Exclude large Kaggle raw datasets
+ieee-fraud-detection/
+train_transaction.csv
+train_identity.csv
+test_transaction.csv
+test_identity.csv
+sample_submission.csv
+PS_20174392719_1491204439457_log.csv
+
+# Exclude generated simulator outputs (large CSVs/JSONs)
+transactions.csv
+fraud_only.csv
+transactions.json
+graph_report.json
+fraud_clusters.json
+
+# Exclude python cache and environment files
+__pycache__/
+*.pyc
+.env
+.venv/
+env/
+venv/
+.idea/
+.vscode/

@@ -1,2 +1,2 @@
 #!/bin/bash
-gunicorn dashboard:app
+gunicorn rit_dashboard:app

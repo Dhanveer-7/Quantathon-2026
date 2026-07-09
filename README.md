@@ -25,32 +25,32 @@ Developed by **Team Schrödinger’s Coders** for **Quantathon 2026** (RIT Chenn
 
 ```mermaid
 graph TD
-  A[Raw Telemetry Ingestion] --> B[Decentralized Agent Ingestion]
+  A["Raw Telemetry Ingestion"] --> B["Decentralized Agent Ingestion"]
   
-  subgraph Ingestion Layer
-    B --> B1[User Agent]
-    B --> B2[Device Agent]
-    B --> B3[Merchant Agent]
-    B --> B4[Network Agent]
+  subgraph "Ingestion Layer"
+    B --> B1["User Agent"]
+    B --> B2["Device Agent"]
+    B --> B3["Merchant Agent"]
+    B --> B4["Network Agent"]
   end
 
-  B1 & B2 & B3 & B4 --> C[Angle Encoding: Theta = R * Pi]
-  C --> D[4-Qubit Variational Quantum Circuit]
+  B1 & B2 & B3 & B4 --> C["Angle Encoding: Theta = R * Pi"]
+  C --> D["4-Qubit Variational Quantum Circuit"]
   
-  subgraph Quantum Optimization Layer (VQC)
-    D --> D1[Ry Rotation Gates]
-    D1 --> D2[Ring CNOT Entangling Ansatz]
-    D2 --> D3[Z-Axis Expectation Measurement]
+  subgraph "Quantum Optimization Layer (VQC)"
+    D --> D1["Ry Rotation Gates"]
+    D1 --> D2["Ring CNOT Entangling Ansatz"]
+    D2 --> D3["Z-Axis Expectation Measurement"]
   end
   
-  D3 --> E[Bloch Vector Weighting: W = (1-Z)/2]
-  E --> F[Adaptive Context Threshold Engine]
-  F --> G[Self-Explainable AI (XAI) Generator]
-  F --> H[Strategic Mitigation Checklist]
+  D3 --> E["Bloch Vector Weighting: W = (1-Z)/2"]
+  E --> F["Adaptive Context Threshold Engine"]
+  F --> G["Self-Explainable AI (XAI) Generator"]
+  F --> H["Strategic Mitigation Checklist"]
   
-  G & H --> I[(MongoDB Collections)]
-  I --> J[FastAPI API Endpoints]
-  I --> K[Flask Dashboard Server]
+  G & H --> I[("MongoDB Collections")]
+  I --> J["FastAPI API Endpoints"]
+  I --> K["Flask Dashboard Server"]
 ```
 
 ---

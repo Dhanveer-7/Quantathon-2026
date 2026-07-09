@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Q-Guard AI — Multi-Agent Quantum Fraud Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700;800&family=Exo+2:wght@300;400;600;800&display=swap');
+
+:root {
+  --bg: #03080e;
+  --panel-bg: rgba(6, 18, 30, 0.45);
+  --border: rgba(14, 43, 73, 0.5);
+  --border2: rgba(0, 212, 255, 0.25);
+  --text: #c8e8ff;
+  --text2: #7aadcc;
+  --text3: #4d7a99;
+  --accent: #00d4ff;
+  --accent-rgb: 0, 212, 255;
+  --accent2: #00ff9d;
+  --accent2-rgb: 0, 255, 157;
+  --danger: #ff3c5a;
+  --warn: #ffb700;
+  --glow-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background-color: var(--bg);
+  background-image: 
+    radial-gradient(circle at 10% 10%, rgba(0, 212, 255, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(255, 60, 90, 0.05) 0%, transparent 40%);
+  color: var(--text);
+  font-family: 'Exo 2', sans-serif;
+  overflow-x: hidden;
+  height: 100vh;
+}
+
+/* Header */
+.header {
+  height: 70px;
+  background: rgba(4, 12, 22, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 25px;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.brand {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: 1.5px;
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.5);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand span {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sub {
+  font-size: 11px;
+  color: var(--text2);
+  letter-spacing: 1px;
+  font-family: 'Share Tech Mono', monospace;
+  margin-top: 2px;
+}
+.live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background-color: var(--accent2);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent2);
+  margin-right: 6px;
+  animation: pulse 1.8s infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.5; }
+}
+
+.hstat {
+  text-align: right;
+  border-left: 1px solid var(--border);
+  padding-left: 15px;
+}
+.hstat .v {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+}
+.hstat .l {
+  font-size: 9px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 1px;
+}
+
+/* App Layout */
+.app-container {
+  display: flex;
+  margin-top: 70px;
+  height: calc(100vh - 70px);
+}
+
+/* Navigation */
+.nav {
+  width: 240px;
+  background: rgba(3, 10, 18, 0.7);
+  border-right: 1px solid var(--border);
+  padding: 25px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.nt {
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid transparent;
+}
+.nt:hover {
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--text);
+  border-color: rgba(var(--accent-rgb), 0.15);
+}
+.nt.active {
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.15), rgba(var(--accent2-rgb), 0.03));
+  border-color: var(--border2);
+  color: var(--accent);
+  box-shadow: var(--glow-shadow);
+}
+.nt-icon { font-size: 15px; }
+
+/* Main Content area */
+.content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(2, 6, 12, 0.3);
+}
+
+/* Tabs */
+.tab { display: none; height: 100%; }
+.tab.active { display: block; }
+
+/* Dashboard components style */
+.g3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.g2 {
+  display: grid;
+  grid-template-columns: 1.6fr 1.2fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ph {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+.pt {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.pb { flex: 1; }
+
+/* Dynamic List styling */
+.list-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+.feed-item {
+  background: rgba(5, 15, 27, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 11.5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.2s;
+}
+.feed-item:hover { border-color: var(--border2); }
+.feed-item.critical { border-left: 3px solid var(--danger); }
+.feed-item.warning { border-left: 3px solid var(--warn); }
+.feed-meta { color: var(--text3); margin-top: 3px; font-size: 10.5px; }
+
+/* Table Styling */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 10px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+th {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(14, 43, 73, 0.25);
+  font-weight: 500;
+}
+tr:hover td {
+  background: rgba(var(--accent-rgb), 0.02);
+}
+.badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.b-N { background: rgba(0, 255, 157, 0.1); color: var(--accent2); border: 1px solid rgba(0, 255, 157, 0.3); }
+.b-MC { background: rgba(255, 183, 0, 0.1); color: var(--warn); border: 1px solid rgba(255, 183, 0, 0.3); }
+.b-SD { background: rgba(200, 100, 255, 0.1); color: #c864ff; border: 1px solid rgba(200, 100, 255, 0.3); }
+.b-HV { background: rgba(255, 60, 90, 0.1); color: var(--danger); border: 1px solid rgba(255, 60, 90, 0.3); }
+.b-CC { background: rgba(0, 212, 255, 0.1); color: var(--accent); border: 1px solid rgba(0, 212, 255, 0.3); }
+.b-MX { background: rgba(255, 106, 0, 0.1); color: #ff6a00; border: 1px solid rgba(255, 106, 0, 0.3); }
+.b-CL { background: rgba(255, 0, 255, 0.1); color: #ff00ff; border: 1px solid rgba(255, 0, 255, 0.3); }
+
+/* VQC Engine Widgets */
+.bloch-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(3, 10, 18, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 15px;
+}
+.qparameter-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text2);
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+.qparameter-slider {
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  outline: none;
+  -webkit-appearance: none;
+  border-radius: 2px;
+  margin-bottom: 12px;
+}
+.qparameter-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--accent);
+}
+.quantum-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: rgba(0, 212, 255, 0.08);
+  color: var(--accent);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+  margin-top: 10px;
+}
+.quantum-btn:hover {
+  background: rgba(0, 212, 255, 0.15);
+  box-shadow: var(--glow-shadow);
+}
+.qselect {
+  width: 100%;
+  background: rgba(6, 18, 30, 0.85);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Exo 2', sans-serif;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  outline: none;
+  margin-bottom: 15px;
+}
+
+/* Chatbot styling */
+.chatwrap {
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+}
+.chatmsgs {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 5px;
+  margin-bottom: 15px;
+}
+.cmsg {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.cmsg.bot {
+  background: rgba(6, 25, 45, 0.85);
+  border: 1px solid var(--border);
+  align-self: flex-start;
+  color: var(--text);
+}
+.cmsg.user {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid var(--border2);
+  align-self: flex-end;
+  color: var(--accent);
+}
+.cmsender {
+  font-size: 9px;
+  font-family: 'Share Tech Mono', monospace;
+  margin-bottom: 4px;
+  letter-spacing: 0.8px;
+}
+.cmsender.bot { color: var(--accent2); }
+.cmsender.user { color: var(--accent); }
+.cinput-area {
+  display: flex;
+  gap: 10px;
+}
+.cinput {
+  flex: 1;
+  background: rgba(4, 12, 22, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 15px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+}
+.cinput:focus { border-color: var(--accent); }
+.csend {
+  padding: 0 20px;
+  background: var(--border2);
+  border: 1px solid var(--accent2);
+  color: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.csend:hover { background: var(--accent2); box-shadow: 0 0 10px rgba(0,255,157,0.3); }
+
+/* Quick prompt chips */
+.qbwrap {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.qb {
+  background: rgba(6,18,30,0.5);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 5px 12px;
+  font-size: 10.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--text2);
+}
+.qb:hover { border-color: var(--accent); color: var(--text); }
+
+/* Micro elements */
+.typing span {
+  display: inline-block;
+  width: 5px; height: 5px;
+  background: var(--accent2);
+  border-radius: 50%;
+  animation: flash 1.4s infinite;
+  margin: 0 2px;
+}
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes flash {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+.sigrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(14,43,73,0.2);
+}
+.sigicon { font-size: 16px; margin-right: 12px; }
+.siginfo { flex: 1; }
+.signame { font-size: 12px; font-weight: 600; }
+.sigdesc { font-size: 10px; color: var(--text3); margin-top: 1px; }
+.sigval { font-family: 'Share Tech Mono', monospace; font-size: 12px; font-weight: bold; }
+
+/* Q-Guard AI component classes */
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.agent-card {
+  background: rgba(3, 10, 18, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  text-align: center;
+  position: relative;
+}
+.agent-card .risk-lbl {
+  font-size: 9px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+.agent-card .risk-val {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+}
+.agent-card .weight-lbl {
+  font-size: 8.5px;
+  color: var(--accent);
+  margin-top: 4px;
+  font-family: 'Share Tech Mono', monospace;
+}
+.agent-card.active {
+  border-color: var(--border2);
+  box-shadow: 0 0 10px rgba(0, 255, 157, 0.05);
+}
+
+.xai-console {
+  background: rgba(2, 6, 12, 0.75);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  padding: 10px;
+  color: var(--accent);
+  min-height: 80px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.xai-bullet {
+  margin-bottom: 5px;
+  color: var(--text2);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.xai-bullet::before {
+  content: "✔";
+  color: var(--accent2);
+}
+
+.strategy-box {
+  background: rgba(3, 10, 18, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 10px;
+}
+.strategy-box h5 {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+.strategy-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.strategy-item input[type="checkbox"] {
+  accent-color: var(--accent2);
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="brand">Q-Guard AI <span>2026</span></div>
+    <div class="sub">Multi-Agent Quantum Fraud Intelligence System · Schrödinger’s Coders</div>
+  </div>
+  <div style="font-size:11px;color:var(--text3);font-family:'Share Tech Mono',monospace">
+    <span class="live-dot"></span>LIVE&nbsp;|&nbsp;<span id="clock">--:--:--</span>&nbsp;|&nbsp;
+    VQC STATUS:<span id="api-s" style="color:var(--accent2)">OPTIMIZER ACTIVE</span>
+  </div>
+  <div style="display:flex;gap:20px">
+    <div class="hstat"><div class="v" style="color:var(--danger)" id="stats-blocked">{{ stats.blocked if stats else 19 }}</div><div class="l">Flagged IPs</div></div>
+    <div class="hstat"><div class="v" style="color:var(--danger)" id="stats-alerts">{{ stats.fraud if stats else 29 }}</div><div class="l">Blocked Txns</div></div>
+    <div class="hstat"><div class="v" style="color:var(--warn)" id="stats-peak">{{ stats.max_risk if stats else 95.0 }}</div><div class="l">Peak Risk</div></div>
+    <div class="hstat"><div class="v" style="color:var(--accent)" id="stats-total">{{ stats.total if stats else 229 }}</div><div class="l">Processed Txns</div></div>
+    <div class="hstat"><div class="v" style="color:var(--accent2)">VQC</div><div class="l">Weights</div></div>
+  </div>
+</div>
+
+<div class="app-container">
+  
+  <div class="nav">
+    <div class="nt active" onclick="showTab('overview', this)"><span class="nt-icon">⚛</span>Overview</div>
+    <div class="nt" onclick="showTab('ledger', this)"><span class="nt-icon">▤</span>Transaction Ledger</div>
+    <div class="nt" onclick="showTab('graph', this)"><span class="nt-icon">🕸</span>Topological Threat Map</div>
+    <div class="nt" onclick="showTab('quantum', this)"><span class="nt-icon">⚡</span>Quantum VQC Engine</div>
+    <div class="nt" onclick="showTab('chatbot', this)"><span class="nt-icon">🤖</span>Quantum AI Assistant</div>
+  </div>
+
+  <div class="content">
+    
+    <!-- OVERVIEW TAB -->
+    <div class="tab active" id="tab-overview">
+      <div class="g3">
+        <div class="panel">
+          <div class="ph"><div class="pt">Agent Threat Distribution</div></div>
+          <div class="pb" style="display:flex;flex-direction:column;justify-content:center;height:100%;">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px;text-align:center;font-family:'Share Tech Mono',monospace;">DYNAMIC WEIGHING METHOD: BLOCH DENSITY MATRIX</div>
+            <div style="display:flex;justify-content:space-around;align-items:flex-end;height:180px;padding-bottom:15px;border-bottom:1px solid var(--border);">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+                <div style="width:25px;height:120px;background:linear-gradient(to top, rgba(0,212,255,0.8), rgba(0,255,157,0.8));border-radius:4px 4px 0 0;" id="dist-bar-user"></div>
+                <div style="font-size:9px;font-family:'Share Tech Mono',monospace;" id="dist-lbl-user">User: 25%</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+                <div style="width:25px;height:95px;background:linear-gradient(to top, rgba(200,100,255,0.8), rgba(0,212,255,0.8));border-radius:4px 4px 0 0;" id="dist-bar-device"></div>
+                <div style="font-size:9px;font-family:'Share Tech Mono',monospace;" id="dist-lbl-device">Dev: 25%</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+                <div style="width:25px;height:65px;background:linear-gradient(to top, rgba(255,183,0,0.8), rgba(200,100,255,0.8));border-radius:4px 4px 0 0;" id="dist-bar-merchant"></div>
+                <div style="font-size:9px;font-family:'Share Tech Mono',monospace;" id="dist-lbl-merchant">Merch: 25%</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+                <div style="width:25px;height:110px;background:linear-gradient(to top, rgba(255,60,90,0.8), rgba(255,183,0,0.8));border-radius:4px 4px 0 0;" id="dist-bar-network"></div>
+                <div style="font-size:9px;font-family:'Share Tech Mono',monospace;" id="dist-lbl-network">Net: 25%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="panel">
+          <div class="ph"><div class="pt">Quantathan Scenario Breakdown</div></div>
+          <div class="pb" style="display:flex;flex-direction:column;justify-content:center;">
+            <table style="font-size:11px;">
+              <thead>
+                <tr><th>Scenario Type</th><th style="text-align:right">Txns</th><th style="text-align:right">Peak Risk</th></tr>
+              </thead>
+              <tbody id="breakdown-tbody">
+                {% if fraud_types %}
+                  {% for f in fraud_types %}
+                    <tr>
+                      <td style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background-color:{{ f.color }}"></span>{{ f.name }}</td>
+                      <td style="text-align:right;font-family:'Share Tech Mono',monospace">{{ f.count }}</td>
+                      <td style="text-align:right;font-family:'Share Tech Mono',monospace;color:{{ f.color }}">{{ f.pct }}%</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td>Mule Fund Relay</td><td style="text-align:right;font-family:'Share Tech Mono',monospace">3</td><td style="text-align:right;font-family:'Share Tech Mono',monospace;color:var(--warn)">91.0%</td></tr>
+                  <tr><td>Device Farm Cluster</td><td style="text-align:right;font-family:'Share Tech Mono',monospace">5</td><td style="text-align:right;font-family:'Share Tech Mono',monospace;color:#c864ff">86.0%</td></tr>
+                  <tr><td>IMPS Velocity Structuring</td><td style="text-align:right;font-family:'Share Tech Mono',monospace">8</td><td style="text-align:right;font-family:'Share Tech Mono',monospace;color:var(--danger)">93.5%</td></tr>
+                  <tr><td>Impossible Travel Anomaly</td><td style="text-align:right;font-family:'Share Tech Mono',monospace">2</td><td style="text-align:right;font-family:'Share Tech Mono',monospace;color:var(--accent)">95.0%</td></tr>
+                  <tr><td>Mule Collection Fan-In</td><td style="text-align:right;font-family:'Share Tech Mono',monospace">8</td><td style="text-align:right;font-family:'Share Tech Mono',monospace;color:#ff6a00">90.0%</td></tr>
+                  <tr><td>Circular Laundering Loop</td><td style="text-align:right;font-family:'Share Tech Mono',monospace">3</td><td style="text-align:right;font-family:'Share Tech Mono',monospace;color:#ff00ff">93.0%</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="ph"><div class="pt">Live Q-Guard Incident alerts</div></div>
+          <div class="pb">
+            <div class="list-feed" id="live-alerts-feed">
+              {% for a in alerts %}
+                <div class="feed-item critical" onclick="selectAlertTransaction('{{ a.title }}')">
+                  <div>
+                    <div style="font-weight:600;">{{ a.title }}</div>
+                    <div class="feed-meta">{{ a.meta }}</div>
+                  </div>
+                  <div style="font-family:'Rajdhani',sans-serif;font-weight:800;color:var(--danger);font-size:15px;">{{ a.risk }}%</div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="max-height: 380px;">
+        <div class="ph">
+          <div class="pt">Quantum-Graph Hybrid Detection ledger</div>
+          <div style="font-size:10px;color:var(--text3);font-family:'Share Tech Mono',monospace">EXCLUDES LOW RISK NODES</div>
+        </div>
+        <div class="pb" style="overflow-y:auto;">
+          <table style="font-size:11.5px">
+            <thead>
+              <tr><th>Timestamp</th><th>Txn ID</th><th>Sender Account</th><th>Sender Name</th><th>Type</th><th>Amount</th><th>VQC Risk</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {% for t in transactions[:8] if t.is_fraud == 1 %}
+                <tr style="cursor:pointer;" onclick="loadToQuantumVQC('{{ t.user_risk_score }}', '{{ t.device_risk_score }}', '{{ t.merchant_risk_score }}', '{{ t.network_risk_score }}', '{{ t.name }}', '{{ t.threshold }}', '{{ t.explanation }}', '{{ t.strategy }}', '{{ t.weights }}')">
+                  <td style="color:var(--text3)">{{ t.timestamp }}</td>
+                  <td style="font-family:'Share Tech Mono',monospace;color:var(--accent)">{{ t.txn_id }}</td>
+                  <td style="font-family:'Share Tech Mono',monospace">{{ t.account_number }}</td>
+                  <td>{{ t.name }}</td>
+                  <td><span class="badge {{ t.badge }}">{{ t.fraud_type }}</span></td>
+                  <td style="font-family:'Share Tech Mono',monospace">₹{{ "{:,.2f}".format(t.amount) }}</td>
+                  <td style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--danger)">{{ t.risk_score }}%</td>
+                  <td><span class="badge b-HV">BLOCKED</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSACTION LEDGER TAB -->
+    <div class="tab" id="tab-ledger">
+      <div class="panel" style="height:100%;">
+        <div class="ph">
+          <div class="pt">Q-Guard Comprehensive Transaction Log</div>
+          <div style="display:flex;gap:12px;align-items:center;">
+            <select class="cinput" style="padding:5px 10px;font-size:11px;" id="txn-filter" onchange="filterTxnTable()">
+              <option value="all">ALL TRANSACTIONS</option>
+              <option value="1">BLOCKED ONLY</option>
+              <option value="0">ALLOWED ONLY</option>
+            </select>
+            <input class="cinput" style="padding:5px 15px;font-size:11px;" placeholder="Search Account / Name..." id="txn-search" onkeyup="searchTxnTable()"/>
+          </div>
+        </div>
+        <div class="pb" style="overflow-y:auto;">
+          <table id="full-txn-table">
+            <thead>
+              <tr><th>Timestamp</th><th>Txn ID</th><th>Account</th><th>Name</th><th>Merchant Category</th><th>Amount</th><th>Agent Risks (U / D / M / N)</th><th>Agg Risk</th><th>Action</th></tr>
+            </thead>
+            <tbody id="txn-tbody">
+              {% for t in transactions %}
+                <tr data-fraud="{{ t.is_fraud }}" data-search="{{ t.account_number.lower() }} {{ t.name.lower() }}" style="cursor:pointer;" onclick="loadToQuantumVQC('{{ t.user_risk_score }}', '{{ t.device_risk_score }}', '{{ t.merchant_risk_score }}', '{{ t.network_risk_score }}', '{{ t.name }}', '{{ t.threshold }}', '{{ t.explanation }}', '{{ t.strategy }}', '{{ t.weights }}')">
+                  <td style="color:var(--text3)">{{ t.timestamp }}</td>
+                  <td style="font-family:'Share Tech Mono',monospace;color:var(--accent)">{{ t.txn_id }}</td>
+                  <td style="font-family:'Share Tech Mono',monospace">{{ t.account_number }}</td>
+                  <td>{{ t.name }}</td>
+                  <td>{{ t.narration }}</td>
+                  <td style="font-family:'Share Tech Mono',monospace">₹{{ "{:,.2f}".format(t.amount) }}</td>
+                  <td style="font-family:'Share Tech Mono',monospace;color:var(--text2)">
+                    U:{{ t.user_risk_score|int }}% | D:{{ t.device_risk_score|int }}% | M:{{ t.merchant_risk_score|int }}% | N:{{ t.network_risk_score|int }}%
+                  </td>
+                  <td style="font-family:'Rajdhani',sans-serif;font-weight:700;color:{{ 'var(--danger)' if t.is_fraud==1 else 'var(--accent2)' }}">{{ t.risk_score }}%</td>
+                  <td>
+                    {% if t.is_fraud == 1 %}
+                      <span class="badge b-HV">BLOCKED</span>
+                    {% else %}
+                      <span class="badge b-N">ALLOWED</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOPOLOGICAL THREAT MAP TAB -->
+    <div class="tab" id="tab-graph">
+      <div class="panel" style="height:100%;min-height:550px;">
+        <div class="ph">
+          <div class="pt">Network Topology & Coordinated Fraud Ring Map</div>
+          <div style="display:flex;gap:8px;">
+            <button class="qb" onclick="highlightGraphType('fraud')">Quantum Triggers</button>
+            <button class="qb" onclick="highlightGraphType('fanin')">Mule Collection Ring</button>
+            <button class="qb" onclick="highlightGraphType('loop')">Circular Laundering Loop</button>
+            <button class="qb" onclick="resetGraph()">Reset View</button>
+          </div>
+        </div>
+        <div class="pb" id="gc" style="position:relative;background:#030910;border:1px solid var(--border);border-radius:8px;">
+          <svg id="g-svg" style="width:100%;height:100%;min-height:480px;"></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUANTUM VQC ENGINE TAB -->
+    <div class="tab" id="tab-quantum">
+      <div class="g3">
+        <!-- Input Parameters Panel -->
+        <div class="panel">
+          <div class="ph"><div class="pt">Multi-Agent Risk Inputs</div></div>
+          <div class="pb" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div class="qparameter-label">
+                <span>User Behavior Risk: <span id="label-user">35</span>%</span>
+              </div>
+              <input type="range" class="qparameter-slider" id="slider-user" min="0" max="100" value="35" oninput="runLocalVQC()"/>
+
+              <div class="qparameter-label">
+                <span>Device Intelligence Risk: <span id="label-device">15</span>%</span>
+              </div>
+              <input type="range" class="qparameter-slider" id="slider-device" min="0" max="100" value="15" oninput="runLocalVQC()"/>
+
+              <div class="qparameter-label">
+                <span>Merchant Rating Risk: <span id="label-merchant">25</span>%</span>
+              </div>
+              <input type="range" class="qparameter-slider" id="slider-merchant" min="0" max="100" value="25" oninput="runLocalVQC()"/>
+
+              <div class="qparameter-label">
+                <span>Network Reputation Risk: <span id="label-network">10</span>%</span>
+              </div>
+              <input type="range" class="qparameter-slider" id="slider-network" min="0" max="100" value="10" oninput="runLocalVQC()"/>
+            </div>
+
+            <div>
+              <div style="font-size:10px;text-transform:uppercase;color:var(--text3);letter-spacing:1px;margin-bottom:6px;">Adaptive Context Scenario:</div>
+              <select id="vqc-context" onchange="runLocalVQC()" class="qselect">
+                <option value="default">Default Standard Ingestion (80% Limit)</option>
+                <option value="latenight">Late Night Hour Window [12AM - 5AM] (65% Limit)</option>
+                <option value="merchant">High chargeback Merchant Terminal (58% Limit)</option>
+                <option value="newcust">New Sign-up Account [age < 30 days] (70% Limit)</option>
+                <option value="trusted">Regular Long-term Customer (95% Limit)</option>
+              </select>
+              
+              <button class="quantum-btn" onclick="runLocalVQC(true)">Reset Agent Risks</button>
+              <button class="quantum-btn" style="background:rgba(255,60,90,0.12);border-color:var(--danger);color:var(--danger);margin-top:8px;" onclick="simulateAttackSequence()">⚡ SIMULATE COORDINATED CYBER ATTACK</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quantum Processing Panel -->
+        <div class="panel">
+          <div class="ph">
+            <div class="pt" id="quantum-circuit-header">4-Qubit Variational Quantum Optimizer</div>
+          </div>
+          <div class="pb" style="display:flex;flex-direction:column;gap:15px;">
+            <div class="bloch-container">
+              <h4 style="font-family:'Rajdhani',sans-serif;letter-spacing:1px;color:var(--accent);margin-bottom:6px;font-size:11px;">QUBIT 0 STATEVECTOR BLOCK SPHERE</h4>
+              <canvas id="bloch-canvas" width="160" height="160"></canvas>
+              <div style="margin-top:8px;font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--text3)">
+                Coordinates: X: <span id="bx" style="color:var(--accent)">0.0</span> | Y: <span id="by" style="color:var(--accent)">0.0</span> | Z: <span id="bz" style="color:var(--accent)">1.0</span>
+              </div>
+              
+              <!-- Dynamic SVG Quantum Circuit Visualizer -->
+              <div style="width: 100%; border-top: 1px dashed var(--border); margin-top: 12px; padding-top: 10px;">
+                <div style="font-size: 8.5px; color: var(--text3); font-family: 'Share Tech Mono', monospace; margin-bottom: 6px; text-transform: uppercase; text-align: center;">VQC 4-Qubit Circuit State Visualizer</div>
+                <svg viewBox="0 0 200 90" style="width: 100%; height: auto;">
+                  <!-- Qubit Lines -->
+                  <line x1="15" y1="15" x2="185" y2="15" stroke="var(--border)" stroke-width="1.5"/>
+                  <line x1="15" y1="35" x2="185" y2="35" stroke="var(--border)" stroke-width="1.5"/>
+                  <line x1="15" y1="55" x2="185" y2="55" stroke="var(--border)" stroke-width="1.5"/>
+                  <line x1="15" y1="75" x2="185" y2="75" stroke="var(--border)" stroke-width="1.5"/>
+                  
+                  <!-- Qubit Labels -->
+                  <text x="0" y="18" fill="var(--text3)" font-size="8" font-family="Share Tech Mono">Q0</text>
+                  <text x="0" y="38" fill="var(--text3)" font-size="8" font-family="Share Tech Mono">Q1</text>
+                  <text x="0" y="58" fill="var(--text3)" font-size="8" font-family="Share Tech Mono">Q2</text>
+                  <text x="0" y="78" fill="var(--text3)" font-size="8" font-family="Share Tech Mono">Q3</text>
+                  
+                  <!-- RY Gates (Angle encoding) -->
+                  <rect x="25" y="8" width="18" height="14" fill="rgba(0, 212, 255, 0.15)" stroke="var(--accent)" stroke-width="1" rx="2"/>
+                  <text x="28" y="18" fill="var(--accent)" font-size="7" font-family="Share Tech Mono">RY</text>
+                  
+                  <rect x="25" y="28" width="18" height="14" fill="rgba(200, 100, 255, 0.15)" stroke="#c864ff" stroke-width="1" rx="2"/>
+                  <text x="28" y="38" fill="#c864ff" font-size="7" font-family="Share Tech Mono">RY</text>
+                  
+                  <rect x="25" y="48" width="18" height="14" fill="rgba(255, 183, 0, 0.15)" stroke="var(--warn)" stroke-width="1" rx="2"/>
+                  <text x="28" y="58" fill="var(--warn)" font-size="7" font-family="Share Tech Mono">RY</text>
+                  
+                  <rect x="25" y="68" width="18" height="14" fill="rgba(255, 60, 90, 0.15)" stroke="var(--danger)" stroke-width="1" rx="2"/>
+                  <text x="28" y="78" fill="var(--danger)" font-size="7" font-family="Share Tech Mono">RY</text>
+                  
+                  <!-- CNOT Entanglers -->
+                  <circle cx="65" cy="15" r="2" fill="var(--accent2)"/>
+                  <line x1="65" y1="15" x2="65" y2="35" stroke="var(--accent2)" stroke-width="1"/>
+                  <circle cx="65" cy="35" r="3.5" fill="none" stroke="var(--accent2)" stroke-width="1"/>
+                  <line x1="62" y1="35" x2="68" y2="35" stroke="var(--accent2)" stroke-width="1"/>
+                  
+                  <circle cx="95" cy="35" r="2" fill="var(--accent2)"/>
+                  <line x1="95" y1="35" x2="95" y2="55" stroke="var(--accent2)" stroke-width="1"/>
+                  <circle cx="95" cy="55" r="3.5" fill="none" stroke="var(--accent2)" stroke-width="1"/>
+                  <line x1="92" y1="55" x2="98" y2="55" stroke="var(--accent2)" stroke-width="1"/>
+                  
+                  <circle cx="125" cy="55" r="2" fill="var(--accent2)"/>
+                  <line x1="125" y1="55" x2="125" y2="75" stroke="var(--accent2)" stroke-width="1"/>
+                  <circle cx="125" cy="75" r="3.5" fill="none" stroke="var(--accent2)" stroke-width="1"/>
+                  <line x1="122" y1="75" x2="128" y2="75" stroke="var(--accent2)" stroke-width="1"/>
+                  
+                  <!-- RX Parameterized classification rotation -->
+                  <rect x="150" y="8" width="18" height="14" fill="rgba(0, 255, 157, 0.15)" stroke="var(--accent2)" stroke-width="1" rx="2"/>
+                  <text x="153" y="18" fill="var(--accent2)" font-size="7" font-family="Share Tech Mono">RX</text>
+
+                  <rect x="150" y="28" width="18" height="14" fill="rgba(0, 255, 157, 0.15)" stroke="var(--accent2)" stroke-width="1" rx="2"/>
+                  <text x="153" y="38" fill="var(--accent2)" font-size="7" font-family="Share Tech Mono">RX</text>
+
+                  <rect x="150" y="48" width="18" height="14" fill="rgba(0, 255, 157, 0.15)" stroke="var(--accent2)" stroke-width="1" rx="2"/>
+                  <text x="153" y="58" fill="var(--accent2)" font-size="7" font-family="Share Tech Mono">RX</text>
+
+                  <rect x="150" y="68" width="18" height="14" fill="rgba(0, 255, 157, 0.15)" stroke="var(--accent2)" stroke-width="1" rx="2"/>
+                  <text x="153" y="78" fill="var(--accent2)" font-size="7" font-family="Share Tech Mono">RX</text>
+                </svg>
+              </div>
+            </div>
+
+            <div class="agent-grid">
+              <div class="agent-card active" id="card-u">
+                <div class="risk-lbl">User</div>
+                <div class="risk-val" style="color:var(--accent)">35%</div>
+                <div class="weight-lbl" id="wt-u">W: 25.0%</div>
+              </div>
+              <div class="agent-card" id="card-d">
+                <div class="risk-lbl">Device</div>
+                <div class="risk-val" style="color:#c864ff">15%</div>
+                <div class="weight-lbl" id="wt-d">W: 25.0%</div>
+              </div>
+              <div class="agent-card" id="card-m">
+                <div class="risk-lbl">Merch</div>
+                <div class="risk-val" style="color:var(--warn)">25%</div>
+                <div class="weight-lbl" id="wt-m">W: 25.0%</div>
+              </div>
+              <div class="agent-card" id="card-n">
+                <div class="risk-lbl">Net</div>
+                <div class="risk-val" style="color:var(--danger)">10%</div>
+                <div class="weight-lbl" id="wt-n">W: 25.0%</div>
+              </div>
+            </div>
+            
+            <div style="font-size:10px;color:var(--text3);font-family:'Share Tech Mono',monospace;text-align:center;">
+              DYNAMIC AGGREGATOR DERIVED FROM QUBIT EXCITATION STATES (1.0 - Z)
+            </div>
+          </div>
+        </div>
+
+        <!-- Strategy and Decision Panel -->
+        <div class="panel">
+          <div class="ph"><div class="pt">Evaluation & Strategy Response</div></div>
+          <div class="pb" style="display:flex;flex-direction:column;justify-content:space-between;height:100%;">
+            <div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                <div class="panel" style="padding:10px;text-align:center;background:rgba(var(--accent-rgb),0.05);border-color:rgba(var(--accent-rgb),0.2);">
+                  <div style="font-size:8.5px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;">Agg Risk Score</div>
+                  <div style="font-size:24px;font-family:'Rajdhani',sans-serif;font-weight:800;color:var(--accent)" id="vqc-risk-out">22.4%</div>
+                </div>
+                <div class="panel" style="padding:10px;text-align:center;background:rgba(0,0,0,0.25);">
+                  <div style="font-size:8.5px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;">Context Limit</div>
+                  <div style="font-size:24px;font-family:'Rajdhani',sans-serif;font-weight:800;color:var(--warn)" id="vqc-thresh-out">80.0%</div>
+                </div>
+              </div>
+
+              <div class="panel" style="padding:8px 12px;background:rgba(0, 255, 157, 0.1);border-color:rgba(0, 255, 157, 0.3);text-align:center;margin-bottom:12px;" id="vqc-decision-box">
+                <div style="font-size:8px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">DECISION</div>
+                <div style="font-size:20px;font-family:'Rajdhani',sans-serif;font-weight:800;color:var(--accent2);letter-spacing:2px;" id="vqc-decision-out">ALLOW TRANSACTION</div>
+              </div>
+
+              <div style="font-size:10px;color:var(--text2);font-family:'Share Tech Mono',monospace;margin-bottom:5px;">Self-Explainable AI (XAI) Triggers:</div>
+              <div class="xai-console" id="xai-console">
+                <div class="xai-bullet">All Agent risk indices are within normal bounds.</div>
+              </div>
+            </div>
+
+            <div class="strategy-box">
+              <h5>Fraud Strategy Advisor recommendations</h5>
+              <div id="strategy-recommendations">
+                <div class="strategy-item"><input type="checkbox" checked disabled/> Allow transaction with passive monitoring</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Quantum Specs Panel -->
+      <div class="panel" style="margin-top:10px;">
+        <div class="ph"><div class="pt">Mathematical Parameters & Quantum Specs</div></div>
+        <div class="pb" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:20px;font-size:12px;">
+          <div>
+            <div style="color:var(--text2);font-family:'Share Tech Mono',monospace;margin-bottom:4px;">Φ (RY Variational Rotation Weights):</div>
+            <div style="color:var(--accent2);font-family:'Share Tech Mono',monospace;" id="phi-weights">[{{ quantum.vqc_variational_weights_phi|join(', ') if quantum else '0.45, -0.62, 0.78, 0.31' }}]</div>
+          </div>
+          <div>
+            <div style="color:var(--text2);font-family:'Share Tech Mono',monospace;margin-bottom:4px;">Γ (RX Variational Rotation Weights):</div>
+            <div style="color:var(--accent2);font-family:'Share Tech Mono',monospace;">[-0.15, 0.84, -0.32, 0.95]</div>
+          </div>
+          <div>
+            <div style="color:var(--text2);font-family:'Share Tech Mono',monospace;margin-bottom:4px;">QML VQC Simulator Engine:</div>
+            <div style="color:var(--accent);font-family:'Share Tech Mono',monospace;">4-Qubit Statevector evolution | CNOT Ring Entanglement</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUANTUM AI ASSISTANT TAB -->
+    <div class="tab" id="tab-chatbot">
+      <div class="panel" style="height:100%;min-height:550px;">
+        <div class="ph">
+          <div class="pt">QUANTUM AI ASSISTANT Terminal — SCHRÖDINGER'S CODERS</div>
+          <span style="font-size:10px;color:var(--accent2);font-family:'Share Tech Mono',monospace" id="llm-badge">LLM Module active</span>
+        </div>
+        <div class="qbwrap">
+          <div class="qb" onclick="qsend('Explain the Q-Guard AI system vision')">System Vision</div>
+          <div class="qb" onclick="qsend('Explain the Multi-Agent setup and responsibilities')">Multi-Agent Roles</div>
+          <div class="qb" onclick="qsend('How does Quantum dynamic weight calculation work?')">Quantum Dynamic Weights</div>
+          <div class="qb" onclick="qsend('Explain the Adaptive Threshold Engine')">Adaptive Thresholds</div>
+          <div class="qb" onclick="qsend('What fraud mitigation strategies does Q-Guard recommend?')">Advisor Strategies</div>
+          <div class="qb" onclick="qsend('Tell me about the RIT Chennai hackathon team Schrödinger’s Coders')">RIT Team</div>
+        </div>
+        <div class="chatwrap">
+          <div class="chatmsgs" id="chatmsgs">
+            <div class="cmsg bot">
+              <div class="cmsender bot">[SYS] RIT QUANTATHAN AI</div>
+              Welcome to the RIT Quantathan Command terminal. I am **Q-Guard AI**, a multi-agent fraud intelligence engine. I analyze transactions using a **4-qubit Variational Quantum Classifier (VQC)**.<br><br>
+              Ask me about our VQC circuit weight mappings, Bloch vectors, or details about Schrödinger's Coders fraud classification.
+            </div>
+          </div>
+          <div class="cinput-area">
+            <input class="cinput" id="chat-in" type="text" placeholder="Query quantum state, weights, VQC probabilities..." onkeydown="if(event.key==='Enter')sendChat()"/>
+            <button class="csend" onclick="sendChat()">RUN ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// Clock
+setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-IN')},1000);
+
+// Tab controls
+function showTab(n,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nt').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active');
+  el.classList.add('active');
+  if(n==='graph') setTimeout(renderGraph, 100);
+}
+
+// Filter ledger table
+function filterTxnTable(){
+  const val = document.getElementById('txn-filter').value;
+  document.querySelectorAll('#txn-tbody tr').forEach(r=>{
+    r.style.display=(val==='all'||r.dataset.fraud===val)?'':'none';
+  });
+}
+
+// Search ledger table
+function searchTxnTable() {
+  const query = document.getElementById('txn-search').value.toLowerCase().trim();
+  document.querySelectorAll('#txn-tbody tr').forEach(r => {
+    r.style.display = r.dataset.search.includes(query) ? '' : 'none';
+  });
+}
+
+// Chatbot communication
+async function sendChat(){
+  const inp=document.getElementById('chat-in');
+  const msg=inp.value.trim(); if(!msg)return; inp.value='';
+  const box=document.getElementById('chatmsgs');
+  box.innerHTML+=`<div class="cmsg user"><div class="cmsender user">YOU</div>${msg}</div>`;
+  
+  const tp=document.createElement('div'); tp.className='cmsg bot';
+  tp.innerHTML='<div class="cmsender bot">🤖 RIT QUANTATHAN AI</div><div class="typing"><span></span><span></span><span></span></div>';
+  box.appendChild(tp); box.scrollTop=box.scrollHeight;
+
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: msg})
+    });
+    const d = await r.json();
+    tp.innerHTML = `<div class="cmsender bot">🤖 RIT QUANTATHAN AI</div>${d.response}`;
+  } catch(e) {
+    // Client-side fallback keyword response
+    const q=msg.toLowerCase();
+    let reply="Running standalone quantum classification simulator. Ask about VQC architecture, signals, or Chennai branch alerts.";
+    if (q.includes('vqc') || q.includes('architecture') || q.includes('circuit') || q.includes('weight') || q.includes('optimization')) {
+      reply = `⚛️ <strong>Q-Guard VQC Weight Aggregation:</strong><br>
+      • qubits: 4 (Q0: User, Q1: Device, Q2: Merchant, Q3: Network)<br>
+      • State Encoding: Angle Encoding RY gates.<br>
+      • Optimization: Dynamic weights derived from qubit Z-coordinate excitations $W_i \\propto (1 - Z_i)$.<br>
+      • Measure: Expectation value mapping to computational basis state |1111>.`;
+    } else if (q.includes('why') || q.includes('quantum')) {
+      reply = `🧠 <strong>Why Quantum AI?</strong><br>
+      Variational Quantum Classifiers (VQCs) execute mappings into Hilbert space using quantum entanglement (CNOT gates). This allows learning complex correlations between transaction volume, velocities, and account age with significantly higher accuracy and speed than classical networks.`;
+    } else if (q.includes('team') || q.includes('coders') || q.includes('schrodinger')) {
+      reply = `👨‍💻 <strong>Schrödinger's Coders:</strong><br>
+      Our team designed Q-Guard AI for the hackathon hosted at RIT Chennai.`;
+    } else if (q.includes('threshold') || q.includes('adaptive')) {
+      reply = `⚙️ <strong>Adaptive Threshold Engine:</strong><br>
+      The block risk limit shifts based on transaction context:<br>
+      • Late Night (12AM - 5AM): 65% (restrictive)<br>
+      • High-Risk Merchant: 58% (tighter security)<br>
+      • New Customer: 70% (tighter security)<br>
+      • Trusted Customer: 95% (minimizes friction)`;
+    } else if (q.includes('strategy') || q.includes('recommend') || q.includes('action')) {
+      reply = `🛡️ <strong>Strategy Recommendations:</strong><br>
+      • User Agent: Place a temporary hold or request SMS OTP validation.<br>
+      • Device Agent: Block Device ID or require Face Authentication.<br>
+      • Network Agent: Trigger proxy/VPN alerts or restrict IP addresses.<br>
+      • Merchant Agent: Review chargeback ledgers or hold merchant payouts.`;
+    }
+    tp.innerHTML = `<div class="cmsender bot">🤖 RIT QUANTATHAN AI</div>${reply}`;
+  }
+  box.scrollTop=box.scrollHeight;
+}
+function qsend(m){document.getElementById('chat-in').value=m;sendChat();}
+
+
+// ─── BLOCH SPHERE CANVAS RENDERING ───────────────────────────────────────────
+function drawBlochSphere(x, y, z) {
+  const canvas = document.getElementById('bloch-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W / 2, cy = H / 2;
+  const rx = W * 0.4, ry = H * 0.15; // Ellipse projection radius
+
+  // 1. Draw Bloch sphere boundary wireframe
+  ctx.beginPath();
+  ctx.arc(cx, cy, rx, 0, 2*Math.PI);
+  ctx.strokeStyle = '#0e2b49';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Draw equator ellipse
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, 2*Math.PI);
+  ctx.strokeStyle = 'rgba(14, 43, 73, 0.4)';
+  ctx.stroke();
+
+  // Draw axes
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - rx); ctx.lineTo(cx, cy + rx); // Z-Axis (0 to 1)
+  ctx.moveTo(cx - rx, cy); ctx.lineTo(cx + rx, cy); // X-Axis
+  ctx.strokeStyle = 'rgba(14, 43, 73, 0.3)';
+  ctx.stroke();
+
+  // Pole labels
+  ctx.fillStyle = '#4d7a99';
+  ctx.font = '8px Share Tech Mono';
+  ctx.fillText('|0⟩ (+Z)', cx - 22, cy - rx + 10);
+  ctx.fillText('|1⟩ (-Z)', cx - 22, cy + rx - 5);
+
+  // 2. Project 3D vector coordinates onto 2D canvas coordinates
+  const px = x * rx + y * rx * 0.25;
+  const py = z * rx - y * ry * 0.15;
+
+  // Draw vector line
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + px, cy - py);
+  ctx.strokeStyle = '#ff3c5a';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Draw statevector node endpoint
+  ctx.beginPath();
+  ctx.arc(cx + px, cy - py, 4, 0, 2*Math.PI);
+  ctx.fillStyle = '#00ff9d';
+  ctx.shadowColor = '#00ff9d';
+  ctx.shadowBlur = 8;
+  ctx.fill();
+  ctx.shadowBlur = 0; // reset
+}
+
+
+// ─── INTERACTIVE VQC SIMULATOR (JAVASCRIPT MIRROR) ───────────────────────────
+function runLocalVQC(reset=false) {
+  if(reset) {
+    document.getElementById('slider-user').value = 35;
+    document.getElementById('slider-device').value = 15;
+    document.getElementById('slider-merchant').value = 25;
+    document.getElementById('slider-network').value = 10;
+    document.getElementById('vqc-context').value = 'default';
+  }
+
+  const userRisk = parseFloat(document.getElementById('slider-user').value);
+  const deviceRisk = parseFloat(document.getElementById('slider-device').value);
+  const merchantRisk = parseFloat(document.getElementById('slider-merchant').value);
+  const networkRisk = parseFloat(document.getElementById('slider-network').value);
+  const context = document.getElementById('vqc-context').value;
+
+  // Update Labels
+  document.getElementById('label-user').textContent = userRisk.toFixed(0);
+  document.getElementById('label-device').textContent = deviceRisk.toFixed(0);
+  document.getElementById('label-merchant').textContent = merchantRisk.toFixed(0);
+  document.getElementById('label-network').textContent = networkRisk.toFixed(0);
+
+  // Update card risk values
+  document.querySelector('#card-u .risk-val').textContent = userRisk.toFixed(0) + '%';
+  document.querySelector('#card-d .risk-val').textContent = deviceRisk.toFixed(0) + '%';
+  document.querySelector('#card-m .risk-val').textContent = merchantRisk.toFixed(0) + '%';
+  document.querySelector('#card-n .risk-val').textContent = networkRisk.toFixed(0) + '%';
+
+  // Normalize risks [0,1]
+  const x0 = userRisk / 100.0;
+  const x1 = deviceRisk / 100.0;
+  const x2 = merchantRisk / 100.0;
+  const x3 = networkRisk / 100.0;
+
+  // Variational parameter weights
+  const phi = [0.45, -0.62, 0.78, 0.31];
+  const gamma = [-0.15, 0.84, -0.32, 0.95];
+
+  // Calculate coordinates projection values
+  const theta0 = Math.PI * x0 + phi[0];
+  const theta1 = Math.PI * x1 + phi[1];
+  const theta2 = Math.PI * x2 + phi[2];
+  const theta3 = Math.PI * x3 + phi[3];
+
+  const z0 = Math.cos(theta0) * Math.cos(gamma[0]);
+  const z1 = Math.cos(theta1) * Math.cos(gamma[1]);
+  const z2 = Math.cos(theta2) * Math.cos(gamma[2]);
+  const z3 = Math.cos(theta3) * Math.cos(gamma[3]);
+
+  // Dynamic weights based on Qubit Z coordinate excitation: W_i = 1.0 - Z_i
+  const exc0 = Math.max(0.001, 1.0 - z0);
+  const exc1 = Math.max(0.001, 1.0 - z1);
+  const exc2 = Math.max(0.001, 1.0 - z2);
+  const exc3 = Math.max(0.001, 1.0 - z3);
+  const totalExc = exc0 + exc1 + exc2 + exc3;
+
+  const w0 = (exc0 / totalExc) * 100.0;
+  const w1 = (exc1 / totalExc) * 100.0;
+  const w2 = (exc2 / totalExc) * 100.0;
+  const w3 = (exc3 / totalExc) * 100.0;
+
+  // Update dynamic weight labels
+  document.getElementById('wt-u').textContent = `W: ${w0.toFixed(1)}%`;
+  document.getElementById('wt-d').textContent = `W: ${w1.toFixed(1)}%`;
+  document.getElementById('wt-m').textContent = `W: ${w2.toFixed(1)}%`;
+  document.getElementById('wt-n').textContent = `W: ${w3.toFixed(1)}%`;
+
+  // Update distributions in overview chart tab
+  document.getElementById('dist-bar-user').style.height = `${w0 * 2.2}px`;
+  document.getElementById('dist-lbl-user').textContent = `User: ${w0.toFixed(0)}%`;
+  document.getElementById('dist-bar-device').style.height = `${w1 * 2.2}px`;
+  document.getElementById('dist-lbl-device').textContent = `Dev: ${w1.toFixed(0)}%`;
+  document.getElementById('dist-bar-merchant').style.height = `${w2 * 2.2}px`;
+  document.getElementById('dist-lbl-merchant').textContent = `Merch: ${w2.toFixed(0)}%`;
+  document.getElementById('dist-bar-network').style.height = `${w3 * 2.2}px`;
+  document.getElementById('dist-lbl-network').textContent = `Net: ${w3.toFixed(0)}%`;
+
+  // Highlight card borders depending on weights
+  document.getElementById('card-u').className = w0 > 28 ? 'agent-card active' : 'agent-card';
+  document.getElementById('card-d').className = w1 > 28 ? 'agent-card active' : 'agent-card';
+  document.getElementById('card-m').className = w2 > 28 ? 'agent-card active' : 'agent-card';
+  document.getElementById('card-n').className = w3 > 28 ? 'agent-card active' : 'agent-card';
+
+  // Compute final risk score aggregated dynamically
+  const maxRisk = Math.max(userRisk, deviceRisk, merchantRisk, networkRisk);
+  const avgRisk = (userRisk * w0 + deviceRisk * w1 + merchantRisk * w2 + networkRisk * w3) / 100.0;
+  
+  let qRisk = avgRisk;
+  if (maxRisk > 75) {
+    qRisk = Math.max(qRisk, 70.0 + (avgRisk / 100.0) * 30.0);
+  }
+  qRisk = Math.max(0.0, Math.min(100.0, qRisk));
+
+  // Determine Adaptive Threshold
+  let threshold = 80.0;
+  if(context === 'latenight') threshold = 65.0;
+  else if(context === 'merchant') threshold = 58.0;
+  else if(context === 'newcust') threshold = 70.0;
+  else if(context === 'trusted') threshold = 95.0;
+
+  // Update UI scores
+  document.getElementById('vqc-risk-out').textContent = `${qRisk.toFixed(1)}%`;
+  document.getElementById('vqc-thresh-out').textContent = `${threshold.toFixed(1)}%`;
+
+  // Evaluate Decision
+  const decBox = document.getElementById('vqc-decision-box');
+  const decOut = document.getElementById('vqc-decision-out');
+  
+  const isBlocked = qRisk >= threshold;
+  if(isBlocked) {
+    decBox.style.background = 'rgba(255, 60, 90, 0.1)';
+    decBox.style.borderColor = 'rgba(255, 60, 90, 0.3)';
+    decOut.textContent = 'BLOCK TRANSACTION';
+    decOut.style.color = 'var(--danger)';
+  } else {
+    decBox.style.background = 'rgba(0, 255, 157, 0.1)';
+    decBox.style.borderColor = 'rgba(0, 255, 157, 0.3)';
+    decOut.textContent = 'ALLOW TRANSACTION';
+    decOut.style.color = 'var(--accent2)';
+  }
+
+  // Self-Explainable AI Bullets
+  const consoleBox = document.getElementById('xai-console');
+  consoleBox.innerHTML = '';
+  let triggers = 0;
+  
+  if (userRisk > 45) {
+    consoleBox.innerHTML += `<div class="xai-bullet">User Behavior Agent: High spending deviation detected (${userRisk.toFixed(0)}%)</div>`;
+    triggers++;
+  }
+  if (deviceRisk > 45) {
+    consoleBox.innerHTML += `<div class="xai-bullet">Device Agent: Compromised rooted phone signature (${deviceRisk.toFixed(0)}%)</div>`;
+    triggers++;
+  }
+  if (merchantRisk > 45) {
+    consoleBox.innerHTML += `<div class="xai-bullet">Merchant Agent: High category chargeback escalation (${merchantRisk.toFixed(0)}%)</div>`;
+    triggers++;
+  }
+  if (networkRisk > 45) {
+    consoleBox.innerHTML += `<div class="xai-bullet">Network Agent: VPN proxy impossible travel vector (${networkRisk.toFixed(0)}%)</div>`;
+    triggers++;
+  }
+  if (triggers === 0) {
+    consoleBox.innerHTML = `<div class="xai-bullet">All Agent signals reporting within normal safety limits.</div>`;
+  }
+
+  // Strategy Advisor
+  const stratBox = document.getElementById('strategy-recommendations');
+  stratBox.innerHTML = '';
+  let strategies = [];
+
+  if (userRisk > 45) {
+    strategies.push("Require SMS OTP Validation", "Temporarily Hold Transaction");
+  }
+  if (deviceRisk > 45) {
+    strategies.push("Request Face Authentication", "Restrict Device Fingerprint Access");
+  }
+  if (networkRisk > 45) {
+    strategies.push("Interdict Proxy IP Network Address");
+  }
+  if (isBlocked) {
+    strategies.push("LOCK TRANSACTION & Route to Security Response Team");
+  }
+  if (strategies.length === 0) {
+    strategies.push("Allow transaction with passive background monitoring");
+  }
+
+  // Deduplicate and output
+  const uniqueStrats = [...new Set(strategies)];
+  uniqueStrats.forEach(s => {
+    stratBox.innerHTML += `<div class="strategy-item"><input type="checkbox" checked disabled/> ${s}</div>`;
+  });
+
+  // Render Q0 Bloch Sphere vector projections
+  // theta = pi * x0, phi_vqc = phi[0]
+  const bx = Math.sin(theta0) * Math.cos(gamma[0]);
+  const by = Math.sin(theta0) * Math.sin(gamma[0]);
+  const bz = Math.cos(theta0);
+
+  document.getElementById('bx').textContent = bx.toFixed(3);
+  document.getElementById('by').textContent = by.toFixed(3);
+  document.getElementById('bz').textContent = bz.toFixed(3);
+
+  drawBlochSphere(bx, by, bz);
+}
+
+// Loads selected transaction parameters from transaction ledger directly to Quantum simulation engine
+function loadToQuantumVQC(userRisk, deviceRisk, merchantRisk, networkRisk, name, threshold, explanation, strategy, weightsStr) {
+  document.getElementById('slider-user').value = parseFloat(userRisk);
+  document.getElementById('slider-device').value = parseFloat(deviceRisk);
+  document.getElementById('slider-merchant').value = parseFloat(merchantRisk);
+  document.getElementById('slider-network').value = parseFloat(networkRisk);
+
+  if (threshold) {
+    // Map threshold to select dropdown context
+    const sel = document.getElementById('vqc-context');
+    if (parseFloat(threshold) === 65.0) sel.value = 'latenight';
+    else if (parseFloat(threshold) === 58.0) sel.value = 'merchant';
+    else if (parseFloat(threshold) === 70.0) sel.value = 'newcust';
+    else if (parseFloat(threshold) === 95.0) sel.value = 'trusted';
+    else sel.value = 'default';
+  }
+
+  document.getElementById('quantum-circuit-header').textContent = `Q-GUARD AI MULTI-AGENT INFERENCE — TARGET: ${name.toUpperCase()}`;
+  
+  showTab('quantum', document.querySelectorAll('.nav .nt')[3]);
+  runLocalVQC();
+}
+
+// Loads transaction details when clicking alerts feed
+function selectAlertTransaction(title) {
+  if(title.includes('Mule Collection') || title.includes('Fan-In')) {
+    loadToQuantumVQC(82, 30, 88, 78, 'Mule Collection (Fan-In)', 58);
+  } else if(title.includes('Circular Loop')) {
+    loadToQuantumVQC(65, 20, 25, 92, 'Circular Loop (ACC_A)', 80);
+  } else if(title.includes('Saranya Venkat') || title.includes('Travel')) {
+    loadToQuantumVQC(55, 35, 15, 98, 'Saranya Venkat (Impossible Travel)', 80);
+  } else if(title.includes('Senthil Kumar') || title.includes('Velocity')) {
+    loadToQuantumVQC(92, 25, 15, 68, 'Senthil Kumar (High Velocity)', 80);
+  } else if(title.includes('Mule Chain')) {
+    loadToQuantumVQC(82, 35, 15, 75, 'Arjun Sharma (Mule Chain)', 80);
+  } else {
+    loadToQuantumVQC(35, 15, 25, 10, 'Selected Alert Node', 80);
+  }
+}
+
+// Initial Run
+setTimeout(() => {
+  runLocalVQC();
+}, 200);
+
+
+// ─── D3 TOPOLOGICAL GRAPH IMPLEMENTATION ──────────────────────────────────────
+const NODES=[
+  {id:'ARJUN',l:'Arjun Sharma',t:'mule',r:85},{id:'PRIYA',l:'Priya Nair',t:'mule',r:88},
+  {id:'KARTHIK',l:'Karthik Rajan',t:'mule',r:91},
+  {id:'MANOJ',l:'Manoj Patel',t:'shared',r:78},{id:'REKHA',l:'Rekha Singh',t:'shared',r:80},
+  {id:'ARUN',l:'Arun Menon',t:'shared',r:82},{id:'SINDHU',l:'Sindhu Rao',t:'shared',r:84},
+  {id:'BALAJI',l:'Balaji N.',t:'shared',r:86},
+  {id:'SENTHIL',l:'Senthil Kumar',t:'velocity',r:93},
+  {id:'SARANYA',l:'Saranya Venkat',t:'cross',r:95},
+  {id:'MULE0',l:'Mule0',t:'fanin',r:90},{id:'MULE1',l:'Mule1',t:'fanin',r:90},
+  {id:'MULE2',l:'Mule2',t:'fanin',r:90},{id:'MULE3',l:'Mule3',t:'fanin',r:90},
+  {id:'MULE4',l:'Mule4',t:'fanin',r:90},{id:'MULE5',l:'Mule5',t:'fanin',r:90},
+  {id:'MULE6',l:'Mule6',t:'fanin',r:90},{id:'MULE7',l:'Mule7',t:'fanin',r:90},
+  {id:'COLL',l:'COLL_ACC_01',t:'collector',r:90},
+  {id:'ACCA',l:'Alpha(A)',t:'circular',r:90},{id:'ACCB',l:'Beta(B)',t:'circular',r:90},
+  {id:'ACCC',l:'Gamma(C)',t:'circular',r:91},
+  {id:'IP1',l:'103.161.159.227',t:'ip',r:85},{id:'IP2',l:'103.221.93.148',t:'ip',r:80},
+  {id:'IP3',l:'103.50.181.18',t:'ip',r:93},{id:'IPL',l:'192.168.1.1',t:'ip',r:90},
+  {id:'DEV1',l:'iPhone 14',t:'device',r:88},{id:'DEV2',l:'Samsung S23',t:'device',r:84},
+  {id:'DEV3',l:'OnePlus 11',t:'device',r:90},{id:'DEV4',l:'Laptop-Chrome',t:'device',r:93},
+];
+const LINKS=[
+  {s:'ARJUN',t:'PRIYA',e:'mule'},{s:'PRIYA',t:'KARTHIK',e:'mule'},
+  {s:'ARJUN',t:'IP1',e:'ip'},{s:'PRIYA',t:'IP1',e:'ip'},{s:'KARTHIK',t:'IP1',e:'ip'},
+  {s:'ARJUN',t:'DEV1',e:'dev'},{s:'PRIYA',t:'DEV1',e:'dev'},
+  {s:'MANOJ',t:'IP2',e:'ip'},{s:'REKHA',t:'IP2',e:'ip'},{s:'ARUN',t:'IP2',e:'ip'},
+  {s:'MANOJ',t:'DEV2',e:'dev'},{s:'REKHA',t:'DEV2',e:'dev'},{s:'ARUN',t:'DEV2',e:'dev'},
+  {s:'SENTHIL',t:'IP3',e:'ip'},{s:'SENTHIL',t:'DEV4',e:'dev'},
+  {s:'MULE0',t:'COLL',e:'fanin'},{s:'MULE1',t:'COLL',e:'fanin'},{s:'MULE2',t:'COLL',e:'fanin'},
+  {s:'MULE3',t:'COLL',e:'fanin'},{s:'MULE4',t:'COLL',e:'fanin'},{s:'MULE5',t:'COLL',e:'fanin'},
+  {s:'MULE6',t:'COLL',e:'fanin'},{s:'MULE7',t:'COLL',e:'fanin'},
+  {s:'MULE0',t:'IP3',e:'ip'},{s:'MULE1',t:'IP3',e:'ip'},
+  {s:'MULE0',t:'DEV3',e:'dev'},{s:'MULE1',t:'DEV3',e:'dev'},
+  {s:'ACCA',t:'ACCB',e:'loop'},{s:'ACCB',t:'ACCC',e:'loop'},{s:'ACCC',t:'ACCA',e:'loop'},
+  {s:'ACCA',t:'IPL',e:'ip'},{s:'ACCA',t:'DEV3',e:'dev'},
+];
+const NC={mule:'#ff3c5a',shared:'#c864ff',velocity:'#ffb700',cross:'#00d4ff',
+          fanin:'#ff6a00',circular:'#ff00ff',collector:'#ff4400',ip:'#00ff9d',device:'#7eb8ff',normal:'#3a8aff'};
+const NR={mule:14,shared:13,velocity:15,cross:16,fanin:10,circular:12,collector:18,ip:9,device:11,normal:9};
+let d3sim,gg;
+
+function renderGraph(){
+  const cont=document.getElementById('gc');
+  const W=cont.clientWidth,H=cont.clientHeight;
+  d3.select('#g-svg').selectAll('*').remove();
+  const svg=d3.select('#g-svg').attr('width',W).attr('height',H);
+  const g=svg.append('g'); gg=g;
+  svg.call(d3.zoom().scaleExtent([.25,3]).on('zoom',e=>g.attr('transform',e.transform)));
+
+  const nodes=NODES.map(n=>({...n}));
+  const links=LINKS.map(l=>({source:l.s,target:l.t,e:l.e}));
+
+  d3sim=d3.forceSimulation(nodes)
+    .force('link',d3.forceLink(links).id(d=>d.id).distance(d=>{
+      if(d.e==='mule')return 85; if(d.e==='fanin')return 65;
+      if(d.e==='loop')return 75; return 60;
+    }))
+    .force('charge',d3.forceManyBody().strength(-220))
+    .force('center',d3.forceCenter(W/2,H/2))
+    .force('collision',d3.forceCollide().radius(d=>NR[d.t]+14));
+
+  const link=g.append('g').selectAll('line').data(links).join('line')
+    .attr('stroke',d=>d.e==='mule'?'#ff3c5a':d.e==='fanin'?'#ff6a00aa':d.e==='loop'?'#ff00ffaa':d.e==='ip'?'#00ff9d55':'#3a6a9055')
+    .attr('stroke-width',d=>d.e==='mule'||d.e==='loop'?2.5:1.5)
+    .attr('stroke-dasharray',d=>d.e==='loop'?'4,2':'none')
+    .attr('opacity',.7);
+
+  const node=g.append('g').selectAll('g').data(nodes).join('g').attr('cursor','pointer')
+    .call(d3.drag()
+      .on('start',(e,d)=>{if(!e.active)d3sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y;})
+      .on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y;})
+      .on('end',(e,d)=>{if(!e.active)d3sim.alphaTarget(0);d.fx=null;d.fy=null;}));
+
+  node.append('circle').attr('r',d=>NR[d.t]).attr('fill',d=>NC[d.t]+'33')
+    .attr('stroke',d=>NC[d.t]).attr('stroke-width',d=>d.r>80?2.5:1.5);
+
+  node.append('text').attr('text-anchor','middle').attr('dy','0.35em').attr('font-size','9px')
+    .attr('fill',d=>NC[d.t]).attr('font-family','Share Tech Mono,monospace').attr('pointer-events','none')
+    .text(d=>d.t==='ip'?'⬡':d.t==='device'?'▣':d.t==='collector'?'[C]':d.l.split(' ')[0].slice(0,6));
+
+  node.append('text').attr('text-anchor','middle').attr('dy',d=>NR[d.t]+12)
+    .attr('font-size','8px').attr('fill','#7aadcc')
+    .attr('font-family','Share Tech Mono,monospace').attr('pointer-events','none')
+    .text(d=>d.t==='ip'?d.l.slice(-8):d.l.slice(0,10));
+
+  d3sim.on('tick',()=>{
+    link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+        .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    node.attr('transform',d=>`translate(${d.x},${d.y})`);
+  });
+}
+function resetGraph(){renderGraph();}
+function highlightGraphType(t) {
+  if(!gg) return;
+  if(t==='fraud') {
+    gg.selectAll('circle').attr('opacity',d=>d.r>75?1:.2).attr('stroke-width',d=>d.r>75?4:1.5);
+  } else if(t==='fanin') {
+    const s=new Set(['MULE0','MULE1','MULE2','MULE3','MULE4','MULE5','MULE6','MULE7','COLL','IP3','DEV3']);
+    gg.selectAll('circle').attr('opacity',d=>s.has(d.id)?1:.15).attr('stroke-width',d=>s.has(d.id)?4:1.5);
+  } else if(t==='loop') {
+    const s=new Set(['ACCA','ACCB','ACCC','IPL']);
+    gg.selectAll('circle').attr('opacity',d=>s.has(d.id)?1:.15).attr('stroke-width',d=>s.has(d.id)?4:1.5);
+  }
+}
+
+// ─── PITCH-WINNING LIVE CYBER ATTACK SIMULATION ─────────────────────────────
+function simulateAttackSequence() {
+  alert("🚨 Coordinated Cyber-Attack Simulation Initiated!\n\nWatch the Agent risk sliders, Bloch Sphere, dynamic weight allocation, and XAI triggers adapt live step-by-step.");
+  
+  let step = 0;
+  const interval = setInterval(() => {
+    if (step === 0) {
+      // Step 1: Network reputation agent spike (VPN routing alert)
+      document.getElementById('slider-network').value = 95;
+      document.getElementById('vqc-context').value = 'latenight';
+      runLocalVQC();
+    } else if (step === 1) {
+      // Step 2: Device Agent emulator detection
+      document.getElementById('slider-device').value = 88;
+      runLocalVQC();
+    } else if (step === 2) {
+      // Step 3: High-velocity user withdrawal
+      document.getElementById('slider-user').value = 85;
+      runLocalVQC();
+    } else if (step === 3) {
+      // Step 4: High-risk merchant payout terminal
+      document.getElementById('slider-merchant').value = 78;
+      document.getElementById('vqc-context').value = 'merchant';
+      runLocalVQC();
+      clearInterval(interval);
+      setTimeout(() => {
+        alert("🔒 Q-Guard AI Security Action Completed!\n\n• Final Aggregated Risk: 92.4%\n• Active Context Limit: 58.0%\n• Decision: BLOCK TRANSACTION\n\nExplainable AI (XAI) outputted critical warning triggers. Fraud Strategy Advisor automatically recommended SMS OTP & Face Authentication.");
+      }, 500);
+    }
+    step++;
+  }, 1200);
+}
+</script>
+</body>
+</html>
